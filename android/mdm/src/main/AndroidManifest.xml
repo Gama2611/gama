@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
+    <!-- Visibilidad de paquetes (Android 11+): solo las variantes de la app GAMA. -->
+    <queries>
+        <package android:name="com.gama.suite" />
+        <package android:name="com.gama.suite.terminal" />
+        <package android:name="com.gama.suite.debug" />
+        <package android:name="com.gama.suite.terminal.debug" />
+    </queries>
+
+    <application
+        android:name=".MdmApp"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/reglas_extraccion"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Tema.GamaMdm"
+        tools:targetApi="35">
+
+        <activity
+            android:name=".InicioActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:lockTaskMode="if_whitelisted"
+            android:screenOrientation="unspecified">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Pantalla de inicio del kiosco: solo se habilita mientras el modo kiosco está activo. -->
+        <activity-alias
+            android:name=".Kiosco"
+            android:enabled="false"
+            android:exported="true"
+            android:targetActivity=".InicioActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.HOME" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity
+            android:name=".MensajeActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:lockTaskMode="if_whitelisted"
+            android:theme="@style/Tema.GamaMdm" />
+
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="fullSensor"
+            tools:replace="screenOrientation" />
+
+        <receiver
+            android:name=".AdminReceptor"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/administrador" />
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".ArranqueReceptor"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".InstalacionReceptor"
+            android:exported="false" />
+    </application>
+</manifest>

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="restriccion_servidor">Dirección del servidor GAMA</string>
+    <string name="restriccion_huella">Huella SHA-256 del certificado del servidor</string>
+</resources>

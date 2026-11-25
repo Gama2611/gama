@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Marca provisional: una "G" geométrica en ámbar sobre petróleo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#F2A900"
+        android:pathData="M54,30 A24,24 0 1,0 78,54 L78,50 L56,50 L56,58 L69.5,58 A16,16 0 1,1 54,38 C58.4,38 62.4,39.8 65.3,42.7 L71,37 C66.6,32.7 60.6,30 54,30 Z" />
+</vector>

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<restrictions xmlns:android="http://schemas.android.com/apk/res/android">
+    <restriction
+        android:key="servidor"
+        android:restrictionType="string"
+        android:title="@string/restriccion_servidor"
+        android:defaultValue="" />
+    <restriction
+        android:key="huella"
+        android:restrictionType="string"
+        android:title="@string/restriccion_huella"
+        android:defaultValue="" />
+</restrictions>
