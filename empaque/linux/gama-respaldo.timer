@@ -1,0 +1,10 @@
+[Unit]
+Description=GAMA Suite: respaldo diario de la base de datos (02:15)
+
+[Timer]
+OnCalendar=*-*-* 02:15:00
+Persistent=true
+RandomizedDelaySec=5m
+
+[Install]
+WantedBy=timers.target

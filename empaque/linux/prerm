@@ -1,0 +1,10 @@
+#!/bin/sh
+set -e
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then
+    systemctl stop gama-suite >/dev/null 2>&1 || true
+    if [ "$1" = "remove" ]; then
+        systemctl disable gama-suite >/dev/null 2>&1 || true
+        systemctl disable --now gama-respaldo.timer >/dev/null 2>&1 || true
+    fi
+fi
+exit 0

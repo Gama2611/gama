@@ -1,0 +1,95 @@
+#!/bin/sh
+# Instalación de GAMA Suite en Linux: usuario de sistema, base de datos, configuración, certificado y servicio.
+# Idempotente: actualizar el paquete solo aplica migraciones y reinicia el servicio.
+set -e
+
+CONF_DIR=/etc/gama
+CONF="$CONF_DIR/gama.env"
+DATOS=/var/lib/gama-suite
+BIN=/opt/gama-suite/servidor/gama-servidor
+ACCESO="$CONF_DIR/acceso-inicial.txt"
+
+con_systemd() { [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; }
+aleatorio() { tr -dc 'A-Za-z0-9' </dev/urandom | head -c "$1"; }
+psql_postgres() { runuser -u postgres -- psql -X -v ON_ERROR_STOP=1 -tA "$@"; }
+
+if [ "$1" != "configure" ]; then exit 0; fi
+
+if ! getent passwd gama >/dev/null; then
+    adduser --system --group --home "$DATOS" --no-create-home --disabled-login --gecos "GAMA Suite" gama >/dev/null
+fi
+install -d -m 0750 -o root -g gama "$CONF_DIR"
+install -d -m 0750 -o gama -g gama "$DATOS" "$DATOS/tls"
+# Los respaldos viven fuera de la carpeta de datos: purgar el paquete no los borra.
+RESPALDOS=/var/backups/gama-suite
+install -d -m 0750 -o gama -g gama "$RESPALDOS"
+
+# PostgreSQL debe estar en marcha para crear la base.
+if con_systemd; then systemctl start postgresql >/dev/null 2>&1 || true; fi
+listo=0
+for _ in $(seq 1 30); do
+    if psql_postgres -c "select 1" >/dev/null 2>&1; then listo=1; break; fi
+    sleep 1
+done
+if [ "$listo" != 1 ]; then
+    echo "GAMA Suite: PostgreSQL no responde. Inícielo y ejecute: sudo dpkg-reconfigure gama-suite" >&2
+    exit 1
+fi
+
+if [ ! -f "$CONF" ]; then
+    CLAVE_BD=$(aleatorio 32)
+    PUERTO_BD=$(psql_postgres -c "show port")
+    if [ "$(psql_postgres -c "select 1 from pg_roles where rolname='gama'")" = "1" ]; then
+        psql_postgres -c "alter role gama with login password '$CLAVE_BD'" >/dev/null
+    else
+        psql_postgres -c "create role gama with login password '$CLAVE_BD'" >/dev/null
+    fi
+    if [ "$(psql_postgres -c "select 1 from pg_database where datname='gama'")" != "1" ]; then
+        runuser -u postgres -- createdb -O gama -E UTF8 -T template0 gama
+    fi
+    IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    umask 027
+    cat >"$CONF" <<CONFIG
+# Configuración de GAMA Suite. Generada al instalar; guarde una copia segura.
+GAMA_BASE_DATOS_URL=postgresql+psycopg://gama:$CLAVE_BD@127.0.0.1:$PUERTO_BD/gama
+GAMA_JWT_SECRETO=$(aleatorio 64)
+GAMA_PUERTO=8443
+GAMA_TLS_CERTIFICADO=$DATOS/tls/servidor.crt
+GAMA_TLS_CLAVE=$DATOS/tls/servidor.key
+GAMA_URL_PUBLICA=https://${IP:-127.0.0.1}:8443
+GAMA_APK_DIR=/opt/gama-suite/apk
+GAMA_ZONA_HORARIA=${GAMA_ZONA_HORARIA:-America/Caracas}
+# Licencia: copie el archivo del cliente y descomente.
+# GAMA_LICENCIA_ARCHIVO=$CONF_DIR/licencia.json
+CONFIG
+    chown root:gama "$CONF"
+    chmod 0640 "$CONF"
+fi
+# Instalaciones anteriores no tenían la carpeta de respaldos en la configuración.
+if ! grep -q '^GAMA_RESPALDO_DIR=' "$CONF"; then echo "GAMA_RESPALDO_DIR=$RESPALDOS" >>"$CONF"; fi
+
+EMPRESA="${GAMA_EMPRESA:-Mi empresa}"
+# El servicio corre como «gama» y no puede crear archivos en /etc/gama: se le presta el archivo de acceso
+# y al terminar vuelve a ser solo de root. Si no se escribió nada (actualización), se quita.
+if [ -e "$ACCESO" ]; then chown gama:gama "$ACCESO"; else install -m 0600 -o gama -g gama /dev/null "$ACCESO"; fi
+runuser -u gama -- env GAMA_CONFIG="$CONF" "$BIN" instalar --empresa "$EMPRESA" --credenciales "$ACCESO"
+if [ -s "$ACCESO" ]; then
+    chown root:root "$ACCESO"
+    chmod 0600 "$ACCESO"
+else
+    rm -f "$ACCESO"
+fi
+
+if con_systemd; then
+    systemctl daemon-reload
+    systemctl enable gama-suite >/dev/null 2>&1
+    systemctl enable --now gama-respaldo.timer >/dev/null 2>&1
+    systemctl restart gama-suite
+fi
+
+URL=$(sed -n 's/^GAMA_URL_PUBLICA=//p' "$CONF")
+echo ""
+echo "GAMA Suite instalada. Consola: $URL/consola/"
+if [ -f "$ACCESO" ]; then echo "Acceso inicial (solo root): $ACCESO"; fi
+echo "Respaldo diario de la base en $RESPALDOS (se conservan 14)."
+exit 0

@@ -1,0 +1,29 @@
+[Unit]
+Description=GAMA Suite (servidor)
+Documentation=https://127.0.0.1:8443/consola/
+After=network-online.target postgresql.service
+Wants=network-online.target postgresql.service
+
+[Service]
+Type=simple
+User=gama
+Group=gama
+Environment=GAMA_CONFIG=/etc/gama/gama.env
+ExecStartPre=/opt/gama-suite/servidor/gama-servidor migrar
+ExecStart=/opt/gama-suite/servidor/gama-servidor servir
+Restart=on-failure
+RestartSec=5
+# Aislamiento: el servicio solo escribe en su carpeta de datos.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictSUIDSGID=yes
+ReadWritePaths=/var/lib/gama-suite
+
+[Install]
+WantedBy=multi-user.target

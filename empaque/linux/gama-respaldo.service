@@ -1,0 +1,15 @@
+[Unit]
+Description=GAMA Suite: respaldo de la base de datos
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=gama
+Group=gama
+Environment=GAMA_CONFIG=/etc/gama/gama.env
+ExecStart=/opt/gama-suite/servidor/gama-servidor respaldar
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/backups/gama-suite

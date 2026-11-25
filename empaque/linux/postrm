@@ -1,0 +1,12 @@
+#!/bin/sh
+# Al purgar se borran la configuración y el certificado. La base de datos se conserva a propósito:
+# contiene la historia de la empresa; también se conservan los respaldos de /var/backups/gama-suite.
+# Para borrarla: sudo -u postgres dropdb gama && sudo -u postgres dropuser gama
+set -e
+if [ "$1" = "purge" ]; then
+    rm -rf /etc/gama /var/lib/gama-suite
+    if getent passwd gama >/dev/null; then deluser --system gama >/dev/null 2>&1 || true; fi
+    echo "GAMA Suite: la base de datos «gama» se conservó. Bórrela manualmente si ya no la necesita."
+fi
+if [ -d /run/systemd/system ] && command -v systemctl >/dev/null 2>&1; then systemctl daemon-reload || true; fi
+exit 0
